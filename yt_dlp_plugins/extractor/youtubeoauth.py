@@ -105,7 +105,8 @@ class YouTubeOAuth2Handler(InfoExtractor):
             self.report_warning(f'Failed to refresh access token: {error}. Restarting authorization flow')
             return self.authorize()
 
-        email = jwt.decode(token_response['id_token'], algorithms=["HS256"])['email']
+        email = jwt.decode(token_response['id_token'], options={'verify_signature': False})['email']
+        
         return {
             'access_token': token_response['access_token'],
             'expires': datetime.datetime.now(datetime.timezone.utc).timestamp() + token_response['expires_in'],
@@ -157,7 +158,7 @@ class YouTubeOAuth2Handler(InfoExtractor):
 
             self.to_screen('Authorization successful')
 
-            email = jwt.decode(token_response['id_token'], algorithms=["HS256"])['email']
+            email = jwt.decode(token_response['id_token'], options={'verify_signature': False})['email']
 
             return {
                 'access_token': token_response['access_token'],
