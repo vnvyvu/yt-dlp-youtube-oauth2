@@ -11,6 +11,7 @@ from yt_dlp.extractor.common import InfoExtractor
 from yt_dlp.extractor.youtube import YoutubeBaseInfoExtractor
 import importlib
 import inspect
+import jwt
 
 _EXCLUDED_IES = ('YoutubeBaseInfoExtractor', 'YoutubeTabBaseInfoExtractor')
 
@@ -24,7 +25,7 @@ __VERSION__ = '2024.09.14'
 # YouTube TV (TVHTML5)
 _CLIENT_ID = '861556708454-d6dlm3lh05idd8npek18k6be8ba3oc68.apps.googleusercontent.com'
 _CLIENT_SECRET = 'SboVhoG9s0rNafixCSGGKXAT'
-_SCOPES = 'http://gdata.youtube.com https://www.googleapis.com/auth/youtube'
+_SCOPES = 'http://gdata.youtube.com https://www.googleapis.com/auth/youtube email'
 
 
 class YouTubeOAuth2Handler(InfoExtractor):
@@ -104,11 +105,13 @@ class YouTubeOAuth2Handler(InfoExtractor):
             self.report_warning(f'Failed to refresh access token: {error}. Restarting authorization flow')
             return self.authorize()
 
+        email = jwt.decode(token_response['id_token'], algorithms=["HS256"])['email']
         return {
             'access_token': token_response['access_token'],
             'expires': datetime.datetime.now(datetime.timezone.utc).timestamp() + token_response['expires_in'],
             'token_type': token_response['token_type'],
-            'refresh_token': token_response.get('refresh_token', refresh_token)
+            'refresh_token': token_response.get('refresh_token', refresh_token),
+            'email': email
         }
 
     def authorize(self):
@@ -153,11 +156,15 @@ class YouTubeOAuth2Handler(InfoExtractor):
                     raise ExtractorError(f'Unhandled OAuth2 Error: {error}')
 
             self.to_screen('Authorization successful')
+
+            email = jwt.decode(token_response['id_token'], algorithms=["HS256"])['email']
+
             return {
                 'access_token': token_response['access_token'],
                 'expires': datetime.datetime.now(datetime.timezone.utc).timestamp() + token_response['expires_in'],
                 'refresh_token': token_response['refresh_token'],
-                'token_type': token_response['token_type']
+                'token_type': token_response['token_type'],
+                'email': email
             }
 
 
